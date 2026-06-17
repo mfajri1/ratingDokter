@@ -1,0 +1,17 @@
+{
+  "name": "Dashboard Monitoring Voting Pasien",
+  "short_name": "VotePasien",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background-color": "#f4f7f6",
+  "theme_color": "#0d6efd",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2850/2850369.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

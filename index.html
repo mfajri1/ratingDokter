@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Dashboard Voting Pasien</title>
+    
+    <meta name="theme-color" content="#0d6efd">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2850/2850369.png">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #0d6efd;
+            --bg-soft: #f8f9fa;
+        }
+        body { 
+            background-color: var(--bg-soft); 
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            padding-bottom: 80px; /* Jarak agar tidak tertutup bottom nav */
+        }
+        .card { 
+            border: none; 
+            border-radius: 16px; 
+            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+            margin-bottom: 16px;
+        }
+        
+        /* Mobile Bottom Navigation Bar */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 65px;
+            background-color: #ffffff;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.08);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 1030;
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
+        }
+        .bottom-nav .nav-link {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #6c757d;
+            font-size: 11px;
+            font-weight: 500;
+            text-decoration: none;
+            width: 100%;
+            transition: 0.2s;
+        }
+        .bottom-nav .nav-link i {
+            font-size: 20px;
+            margin-bottom: 4px;
+        }
+        .bottom-nav .nav-link.active {
+            color: var(--primary-color);
+        }
+
+        /* Responsive Table to Cards Transformation for Mobile */
+        @media (max-width: 576px) {
+            .responsive-table-mobile thead {
+                display: none;
+            }
+            .responsive-table-mobile tbody tr {
+                display: block;
+                background: white;
+                border: 1px solid #dee2e6;
+                border-radius: 12px;
+                padding: 12px;
+                margin-bottom: 12px;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+            }
+            .responsive-table-mobile tbody td {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                border: none;
+                padding: 6px 0;
+                text-align: right;
+            }
+            .responsive-table-mobile tbody td::before {
+                content: attr(data-label);
+                font-weight: 600;
+                color: #6c757d;
+                text-align: left;
+                font-size: 13px;
+            }
+            .responsive-table-mobile tbody td:last-child {
+                border-top: 1px solid #eee;
+                padding-top: 10px;
+                margin-top: 4px;
+            }
+            .chart-container {
+                height: 280px !important;
+            }
+        }
+
+        .chart-container { position: relative; margin: auto; height: 340px; width: 100%; }
+        .header-app {
+            background: linear-gradient(135deg, #0d6efd, #0056b3);
+            color: white;
+            padding: 20px 0;
+            border-bottom-left-radius: 24px;
+            border-bottom-right-radius: 24px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header-app text-center">
+    <div class="container">
+        <h5 class="m-0 fw-bold"><i class="fa-solid fa-square-poll-vertical me-2"></i>MONITORING VOTING</h5>
+        <span class="small opacity-75">Sistem Kepuasan Pelayanan Dokter</span>
+    </div>
+</div>
+
+<div class="container">
+    <div class="tab-content" id="pwaTabContent">
+        
+        <div class="tab-pane fade show active" id="database-page" role="tabpanel">
+            <div class="card p-3 p-md-4">
+                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                    <h6 class="m-0 text-secondary fw-bold"><i class="fa-solid fa-database me-2"></i>Riwayat Hasil Voting</h6>
+                    <button class="btn btn-outline-danger btn-sm rounded-pill" onclick="deleteAllData()">
+                        <i class="fa-solid fa-trash-can me-1"></i> Kosongkan DB
+                    </button>
+                </div>
+                
+                <div class="table-responsive" style="max-height: 65vh;">
+                    <table class="table table-hover align-middle responsive-table-mobile">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Tanggal</th>
+                                <th>Jam</th>
+                                <th>Nama Dokter</th>
+                                <th>Penilaian Saran</th>
+                                <th class="text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-body">
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-4">Sedang memuat data dari Firebase...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="chart-page" role="tabpanel">
+            <div class="row">
+                <div class="col-md-5">
+                    <div class="card p-3">
+                        <h6 class="text-secondary fw-bold mb-3"><i class="fa-solid fa-sliders me-2"></i>Kontrol Panel</h6>
+                        <div class="mb-3">
+                            <label for="select-dokter" class="form-label text-muted small">Pilih Dokter:</label>
+                            <select class="form-select" id="select-dokter" onchange="updateChartData()">
+                                <option value="" disabled selected>-- Pilih Dokter --</option>
+                            </select>
+                        </div>
+                        <div class="p-3 bg-light rounded-3 text-center border">
+                            <span class="text-muted d-block small mb-1">Total Database</span>
+                            <h3 class="m-0 text-primary fw-bold" id="total-global-database">0</h3>
+                            <span class="text-muted small">Responden Masuk</span>
+                        </div>
+                    </div>
+
+                    <div id="summary-info" class="card p-3 d-none">
+                        <h6 class="text-secondary fw-bold mb-3"><i class="fa-solid fa-list-ol me-2"></i>Distribusi Suara</h6>
+                        <table class="table table-sm table-bordered align-middle mb-3 small">
+                            <tbody>
+                                <tr><td><span class="badge bg-success">Sangat Baik</span></td><td id="count-sangat-baik" class="text-end fw-bold">0</td></tr>
+                                <tr><td><span class="badge bg-info text-dark">Baik</span></td><td id="count-baik" class="text-end fw-bold">0</td></tr>
+                                <tr><td><span class="badge bg-warning text-dark">Cukup</span></td><td id="count-cukup" class="text-end fw-end fw-bold">0</td></tr>
+                                <tr><td><span class="badge bg-danger">Tidak Baik</span></td><td id="count-tidak-baik" class="text-end fw-bold">0</td></tr>
+                                <tr><td><span class="badge bg-secondary">Sangat Tdk Baik</span></td><td id="count-sngt-tdk-baik" class="text-end fw-bold">0</td></tr>
+                                <tr class="table-primary fw-bold text-primary">
+                                    <td>Total Suara Dokter Ini</td>
+                                    <td id="total-vote-dokter" class="text-end">0</td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div class="p-3 bg-light border-start border-4 border-primary rounded-3 shadow-sm">
+                            <h6 class="fw-bold text-primary mb-1 small"><i class="fa-solid fa-square-root-variable me-1"></i> Kalkulasi Likert & CSI:</h6>
+                            <p id="text-kesimpulan-jurnal" class="small text-muted mb-0" style="text-align: justify; line-height:1.5;"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-7">
+                    <div class="card p-3">
+                        <h6 class="text-secondary fw-bold mb-3"><i class="fa-solid fa-chart-bar me-2"></i>Grafik Persentase (%)</h6>
+                        <div class="chart-container">
+                            <canvas id="votingChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div class="bottom-nav">
+    <a href="#" class="nav-link active" onclick="switchTab(event, 'database-page', this)">
+        <i class="fa-solid fa-database"></i>
+        <span>Database</span>
+    </a>
+    <a href="#" class="nav-link" onclick="switchTab(event, 'chart-page', this)">
+        <i class="fa-solid fa-chart-pie"></i>
+        <span>Grafik & CSI</span>
+    </a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    const firebaseBaseURL = "https://peninjauandokter-default-rtdb.asia-southeast1.firebasedatabase.app/voting_pasien";
+    const firebaseAuthToken = "GTuZ5vpNN33TW21HIJCgfrzp6m78cj4UelHaRoGE";
+
+    let localDatabaseStorage = {};
+    let myChartInstance = null;
+
+    document.addEventListener("DOMContentLoaded", function() {
+        initChart();
+        fetchFirebaseData();
+        setInterval(fetchFirebaseData, 5000);
+        registerServiceWorker(); // Jalankan PWA Engine
+    });
+
+    // PWA: Switch tab dengan gaya aplikasi native
+    function switchTab(event, targetPageId, element) {
+        event.preventDefault();
+        document.querySelectorAll('.bottom-nav .nav-link').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab-pane').forEach(el => {
+            el.classList.remove('show', 'active');
+        });
+        
+        element.classList.add('active');
+        const targetPage = document.getElementById(targetPageId);
+        targetPage.classList.add('show', 'active');
+    }
+
+    function fetchFirebaseData() {
+        const url = `${firebaseBaseURL}.json?auth=${firebaseAuthToken}`;
+        fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            localDatabaseStorage = data || {};
+            document.getElementById("total-global-database").innerText = Object.keys(localDatabaseStorage).length + " Pasien";
+            renderTable();
+            populateDokterDropdown();
+        })
+        .catch(err => {
+            console.error(err);
+            document.getElementById("table-body").innerHTML = `<tr><td colspan="5" class="text-center text-danger">Koneksi Error.</td></tr>`;
+        });
+    }
+
+    function renderTable() {
+        const tbody = document.getElementById("table-body");
+        if (Object.keys(localDatabaseStorage).length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-4">Belum ada data voting.</td></tr>`;
+            return;
+        }
+
+        let htmlRows = "";
+        const keys = Object.keys(localDatabaseStorage).reverse();
+
+        keys.forEach(key => {
+            const item = localDatabaseStorage[key];
+            const tanggal = item.tanggal || "-";
+            const jam = item.jam || "-";
+            const dokter = item.dokter || "Tidak Dikenal";
+            const saran = item.saran || "Tanpa Keterangan";
+
+            // Injection data-label ditambahkan agar responsive mobile card berfungsi aktif
+            htmlRows += `
+                <tr>
+                    <td data-label="Tanggal"><span class="badge bg-light text-dark border"><i class="fa-regular fa-calendar me-1"></i>${tanggal}</span></td>
+                    <td data-label="Jam"><span class="badge bg-light text-dark border"><i class="fa-regular fa-clock me-1"></i>${jam}</span></td>
+                    <td data-label="Dokter"><strong>${dokter}</strong></td>
+                    <td data-label="Saran"><span class="badge ${getSaranBadgeColor(saran)}">${saran}</span></td>
+                    <td data-label="Aksi" class="text-center">
+                        <button class="btn btn-sm btn-outline-danger px-3 rounded-pill" onclick="deleteSingleRow('${key}')">
+                            <i class="fa-solid fa-trash me-1"></i> Hapus
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+        tbody.innerHTML = htmlRows;
+    }
+
+    function getSaranBadgeColor(saran) {
+        if (saran === "Sangat Baik") return "bg-success";
+        if (saran === "Baik") return "bg-info text-dark";
+        if (saran === "Cukup") return "bg-warning text-dark";
+        if (saran === "Tidak Baik") return "bg-danger";
+        return "bg-secondary";
+    }
+
+    function populateDokterDropdown() {
+        const dropdown = document.getElementById("select-dokter");
+        const selectedValueBefore = dropdown.value; 
+        
+        let listDokterUnik = new Set();
+        Object.values(localDatabaseStorage).forEach(item => {
+            if (item.dokter) listDokterUnik.add(item.dokter);
+        });
+
+        let dropdownHtml = '<option value="" disabled ' + (selectedValueBefore === "" ? 'selected' : '') + '>-- Pilih Dokter --</option>';
+        listDokterUnik.forEach(namaDokter => {
+            dropdownHtml += `<option value="${namaDokter}" ${selectedValueBefore === namaDokter ? 'selected' : ''}>${namaDokter}</option>`;
+        });
+        
+        dropdown.innerHTML = dropdownHtml;
+        if(selectedValueBefore) updateChartData(); 
+    }
+
+    function deleteSingleRow(keyId) {
+        if (confirm("Hapus baris rekaman ini?")) {
+            const url = `${firebaseBaseURL}/${keyId}.json?auth=${firebaseAuthToken}`;
+            fetch(url, { method: 'DELETE' })
+            .then(() => fetchFirebaseData())
+            .catch(err => alert(err));
+        }
+    }
+
+    function deleteAllData() {
+        if (confirm("Hapus seluruh isi database? Tindakan permanen!")) {
+            const url = `${firebaseBaseURL}.json?auth=${firebaseAuthToken}`;
+            fetch(url, { method: 'DELETE' })
+            .then(() => {
+                fetchFirebaseData();
+                resetChartToZero();
+            })
+            .catch(err => alert(err));
+        }
+    }
+
+    function initChart() {
+        const ctx = document.getElementById('votingChart').getContext('2d');
+        myChartInstance = new Chart(ctx, {
+            type: 'bar', 
+            data: {
+                labels: ['Sangat Baik', 'Baik', 'Cukup', 'Tidak Baik', 'Sangat Tdk Baik'],
+                datasets: [{
+                    label: 'Persentase (%)',
+                    data: [0, 0, 0, 0, 0],
+                    backgroundColor: [
+                        'rgba(40, 167, 69, 0.8)', 'rgba(23, 162, 184, 0.8)', 
+                        'rgba(255, 193, 7, 0.8)', 'rgba(220, 53, 69, 0.8)', 'rgba(108, 117, 125, 0.8)'
+                    ],
+                    borderWidth: 0,
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: { y: { beginAtZero: true, max: 100, ticks: { callback: function(value) { return value + "%"; } } } }
+            }
+        });
+    }
+
+    function updateChartData() {
+        const dokterTerpilih = document.getElementById("select-dokter").value;
+        if (!dokterTerpilih) return;
+
+        let jwb = { "Sangat Baik":0, "Baik":0, "Cukup":0, "Tidak Baik":0, "Sangat Tdk Baik":0 };
+        let totalVoteDokter = 0;
+
+        Object.values(localDatabaseStorage).forEach(item => {
+            if (item.dokter === dokterTerpilih) {
+                totalVoteDokter++;
+                if (jwb[item.saran] !== undefined) jwb[item.saran]++;
+            }
+        });
+
+        document.getElementById("count-sangat-baik").innerText = jwb["Sangat Baik"] + " org";
+        document.getElementById("count-baik").innerText = jwb["Baik"] + " org";
+        document.getElementById("count-cukup").innerText = jwb["Cukup"] + " org";
+        document.getElementById("count-tidak-baik").innerText = jwb["Tidak Baik"] + " org";
+        document.getElementById("count-sngt-tdk-baik").innerText = jwb["Sangat Tdk Baik"] + " org";
+        document.getElementById("total-vote-dokter").innerText = totalVoteDokter + " org";
+        document.getElementById("summary-info").classList.remove("d-none");
+
+        let pSB = totalVoteDokter > 0 ? (jwb["Sangat Baik"] / totalVoteDokter) * 100 : 0;
+        let pB  = totalVoteDokter > 0 ? (jwb["Baik"] / totalVoteDokter) * 100 : 0;
+        let pC  = totalVoteDokter > 0 ? (jwb["Cukup"] / totalVoteDokter) * 100 : 0;
+        let pTB = totalVoteDokter > 0 ? (jwb["Tidak Baik"] / totalVoteDokter) * 100 : 0;
+        let pSTB= totalVoteDokter > 0 ? (jwb["Sangat Tdk Baik"] / totalVoteDokter) * 100 : 0;
+
+        myChartInstance.data.datasets[0].data = [pSB, pB, pC, pTB, pSTB];
+        myChartInstance.update(); 
+
+        let totalSkor = (jwb["Sangat Baik"]*5) + (jwb["Baik"]*4) + (jwb["Cukup"]*3) + (jwb["Tidak Baik"]*2) + (jwb["Sangat Tdk Baik"]*1);
+        let skorMax = totalVoteDokter * 5;
+        let csi = skorMax > 0 ? (totalSkor / skorMax) * 100 : 0;
+
+        let predikat = "Tidak Memuaskan";
+        if (csi >= 81.25) predikat = "Sangat Memuaskan";
+        else if (csi >= 62.50) predikat = "Memuaskan";
+        else if (csi >= 43.75) predikat = "Cukup Memuaskan";
+        else if (csi >= 25.00) predikat = "Kurang Memuaskan";
+
+        document.getElementById("text-kesimpulan-jurnal").innerHTML = `Diperoleh indeks kepuasan (CSI) sebesar <strong>${csi.toFixed(1)}%</strong>. Performa pelayanan medis terhadap <strong>${dokterTerpilih}</strong> diklasifikasikan berpredikat <strong>${predikat}</strong> secara metodologi Skala Likert (Total: ${totalVoteDokter} responden).`;
+    }
+
+    function resetChartToZero() {
+        document.getElementById("summary-info").classList.add("d-none");
+        document.getElementById("select-dokter").value = "";
+        myChartInstance.data.datasets[0].data = [0, 0, 0, 0, 0];
+        myChartInstance.update();
+    }
+
+    // PWA CORE SERVICE: Pendaftaran Engine Otomatis
+    function registerServiceWorker() {
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+            .then(() => console.log("PWA Service Worker Aktif"))
+            .catch(err => console.log("Gagal memuat SW: ", err));
+        }
+    }
+</script>
+</body>
+</html>
