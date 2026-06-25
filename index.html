@@ -278,7 +278,17 @@
         }
 
         let htmlRows = "";
-        const keys = Object.keys(localDatabaseStorage).reverse();
+        const keys = Object.keys(localDatabaseStorage).sort((a, b) => {
+            const itemA = localDatabaseStorage[a];
+            const itemB = localDatabaseStorage[b];
+        
+            // gabungkan tanggal + jam jadi object Date
+            const dateA = new Date(`${itemA.tanggal} ${itemA.jam}`);
+            const dateB = new Date(`${itemB.tanggal} ${itemB.jam}`);
+        
+            // terbaru di atas
+            return dateB - dateA;
+        });
 
         keys.forEach(key => {
             const item = localDatabaseStorage[key];
@@ -286,16 +296,32 @@
             const jam = item.jam || "-";
             const dokter = item.dokter || "Tidak Dikenal";
             const saran = item.saran || "Tanpa Keterangan";
-
-            // Injection data-label ditambahkan agar responsive mobile card berfungsi aktif
+        
             htmlRows += `
                 <tr>
-                    <td data-label="Tanggal"><span class="badge bg-light text-dark border"><i class="fa-regular fa-calendar me-1"></i>${tanggal}</span></td>
-                    <td data-label="Jam"><span class="badge bg-light text-dark border"><i class="fa-regular fa-clock me-1"></i>${jam}</span></td>
-                    <td data-label="Dokter"><strong>${ubahGelar(dokter)}</strong></td>
-                    <td data-label="Saran"><span class="badge ${getSaranBadgeColor(saran)}">${saran}</span></td>
+                    <td data-label="Tanggal">
+                        <span class="badge bg-light text-dark border">
+                            <i class="fa-regular fa-calendar me-1"></i>${tanggal}
+                        </span>
+                    </td>
+        
+                    <td data-label="Jam">
+                        <span class="badge bg-light text-dark border">
+                            <i class="fa-regular fa-clock me-1"></i>${jam}
+                        </span>
+                    </td>
+        
+                    <td data-label="Dokter">
+                        <strong>${ubahGelar(dokter)}</strong>
+                    </td>
+        
+                    <td data-label="Saran">
+                        <span class="badge ${getSaranBadgeColor(saran)}">${saran}</span>
+                    </td>
+        
                     <td data-label="Aksi" class="text-center">
-                        <button class="btn btn-sm btn-outline-danger px-3 rounded-pill" onclick="deleteSingleRow('${key}')">
+                        <button class="btn btn-sm btn-outline-danger px-3 rounded-pill"
+                            onclick="deleteSingleRow('${key}')">
                             <i class="fa-solid fa-trash me-1"></i> Hapus
                         </button>
                     </td>
