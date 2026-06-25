@@ -391,12 +391,13 @@
             }
         });
 
-        document.getElementById("count-sangat-baik").innerText = jwb["Sangat Baik"] + " org";
-        document.getElementById("count-baik").innerText = jwb["Baik"] + " org";
-        document.getElementById("count-cukup").innerText = jwb["Cukup"] + " org";
-        document.getElementById("count-tidak-baik").innerText = jwb["Tidak Baik"] + " org";
-        document.getElementById("count-sngt-tdk-baik").innerText = jwb["Sangat Tdk Baik"] + " org";
-        document.getElementById("total-vote-dokter").innerText = totalVoteDokter + " org";
+        document.getElementById("count-sangat-baik").innerText = jwb["Sangat Baik"] + " pasien";
+        document.getElementById("count-baik").innerText = jwb["Baik"] + " psaien";
+        document.getElementById("count-cukup").innerText = jwb["Cukup"] + " pasien";
+        document.getElementById("count-tidak-baik").innerText = jwb["Tidak Baik"] + " pasien";
+        document.getElementById("count-sngt-tdk-baik").innerText = jwb["Sangat Tdk Baik"] + " pasien";
+        document.getElementById("total-vote-dokter").innerText = totalVoteDokter + " pasien";
+        document.getElementById("total-global-database").innerText = totalVoteDokter + " pasien";
         document.getElementById("summary-info").classList.remove("d-none");
 
         let pSB = totalVoteDokter > 0 ? (jwb["Sangat Baik"] / totalVoteDokter) * 100 : 0;
