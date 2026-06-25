@@ -278,7 +278,7 @@
         }
 
         let htmlRows = "";
-        const keys = Object.keys(localDatabaseStorage);
+        const keys = Object.keys(localDatabaseStorage).reverse();
 
         keys.forEach(key => {
             const item = localDatabaseStorage[key];
