@@ -324,7 +324,7 @@
 
         let dropdownHtml = '<option value="" disabled ' + (selectedValueBefore === "" ? 'selected' : '') + '>-- Pilih Dokter --</option>';
         listDokterUnik.forEach(namaDokter => {
-            dropdownHtml += `<option value="${namaDokter}" ${selectedValueBefore === namaDokter ? 'selected' : ''}>${namaDokter.toUpperCase()}</option>`;
+            dropdownHtml += `<option value="${namaDokter}" ${selectedValueBefore === namaDokter ? 'selected' : ''}>${ubahGelar(namaDokter)}</option>`;
         });
         
         dropdown.innerHTML = dropdownHtml;
@@ -436,6 +436,10 @@
             .then(() => console.log("PWA Service Worker Aktif"))
             .catch(err => console.log("Gagal memuat SW: ", err));
         }
+    }
+
+    function ubahGelar(nama) {
+      return nama.replace(/dr\./i, "dr.");
     }
 </script>
 </body>
