@@ -141,6 +141,7 @@
                     <table class="table table-hover align-middle responsive-table-mobile">
                         <thead class="table-light">
                             <tr>
+                                <th>No</th>
                                 <th>Tanggal</th>
                                 <th>Jam</th>
                                 <th>Nama Dokter</th>
@@ -150,7 +151,7 @@
                         </thead>
                         <tbody id="table-body">
                             <tr>
-                                <td colspan="5" class="text-center text-muted py-4">Sedang memuat data dari Firebase...</td>
+                                <td colspan="6" class="text-center text-muted py-4">Sedang memuat data dari Firebase...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -166,13 +167,13 @@
                         <div class="mb-3">
                             <label for="select-dokter" class="form-label text-muted small">Pilih Dokter:</label>
                             <select class="form-select" id="select-dokter" onchange="updateChartData()">
-                                <option value="" disabled selected>-- Pilih Dokter --</option>
+                                <option value="" selected>-- Ringkasan Semua Dokter --</option>
                             </select>
                         </div>
                         <div class="p-3 bg-light rounded-3 text-center border">
-                            <span class="text-muted d-block small mb-1">Total Database</span>
+                            <span class="text-muted d-block small mb-1" id="label-total-database">Total Database</span>
                             <h3 class="m-0 text-primary fw-bold" id="total-global-database">0</h3>
-                            <span class="text-muted small">Responden Masuk</span>
+                            <span class="text-muted small" id="label-total-sublabel">Responden Masuk</span>
                         </div>
                     </div>
 
@@ -201,7 +202,7 @@
 
                 <div class="col-md-7">
                     <div class="card p-3">
-                        <h6 class="text-secondary fw-bold mb-3"><i class="fa-solid fa-chart-bar me-2"></i>Grafik Persentase (%)</h6>
+                        <h6 class="text-secondary fw-bold mb-3"><i class="fa-solid fa-chart-bar me-2"></i><span id="chart-title-label">Grafik Ringkasan Semua Dokter (%)</span></h6>
                         <div class="chart-container">
                             <canvas id="votingChart"></canvas>
                         </div>
@@ -226,10 +227,18 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
 
 <script>
     const firebaseBaseURL = "https://peninjauandokter-default-rtdb.asia-southeast1.firebasedatabase.app/voting_pasien";
     const firebaseAuthToken = "GTuZ5vpNN33TW21HIJCgfrzp6m78cj4UelHaRoGE";
+
+    const skorMap = { "Sangat Baik": 5, "Baik": 4, "Cukup": 3, "Tidak Baik": 2, "Sangat Tdk Baik": 1 };
+    const kategoriLabels = ['Sangat Baik', 'Baik', 'Cukup', 'Tidak Baik', 'Sangat Tdk Baik'];
+    const kategoriColors = [
+        'rgba(40, 167, 69, 0.8)', 'rgba(23, 162, 184, 0.8)',
+        'rgba(255, 193, 7, 0.8)', 'rgba(220, 53, 69, 0.8)', 'rgba(108, 117, 125, 0.8)'
+    ];
 
     let localDatabaseStorage = {};
     let myChartInstance = null;
@@ -260,53 +269,45 @@
         .then(response => response.json())
         .then(data => {
             localDatabaseStorage = data || {};
-            document.getElementById("total-global-database").innerText = Object.keys(localDatabaseStorage).length + " Pasien";
             renderTable();
             populateDokterDropdown();
         })
         .catch(err => {
             console.error(err);
-            document.getElementById("table-body").innerHTML = `<tr><td colspan="5" class="text-center text-danger">Koneksi Error.</td></tr>`;
+            document.getElementById("table-body").innerHTML = `<tr><td colspan="6" class="text-center text-danger">Koneksi Error.</td></tr>`;
         });
     }
 
     function renderTable() {
         const tbody = document.getElementById("table-body");
         if (Object.keys(localDatabaseStorage).length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-4">Belum ada data voting.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">Belum ada data voting.</td></tr>`;
             return;
         }
 
         let htmlRows = "";
-        const keys = Object.keys(localDatabaseStorage).sort((a, b) => {
-            const itemA = localDatabaseStorage[a];
-            const itemB = localDatabaseStorage[b];
-        
-            // gabungkan tanggal + jam
-            const datetimeA = new Date(`${itemA.tanggal}T${itemA.jam}`);
-            const datetimeB = new Date(`${itemB.tanggal}T${itemB.jam}`);
-        
-            // terbaru paling atas
-            return datetimeB - datetimeA;
-        });
-        
-        keys.forEach(key => {
+        const keys = Object.keys(localDatabaseStorage).reverse();
+
+        keys.forEach((key, index) => {
             const item = localDatabaseStorage[key];
-        
+            const nomorUrut = index + 1;
             const tanggal = item.tanggal || "-";
             const jam = item.jam || "-";
             const dokter = item.dokter || "Tidak Dikenal";
             const saran = item.saran || "Tanpa Keterangan";
-        
+
+            // Injection data-label ditambahkan agar responsive mobile card berfungsi aktif
             htmlRows += `
                 <tr>
-                    <td data-label="Tanggal">${tanggal}</td>
-                    <td data-label="Jam">${jam}</td>
-                    <td data-label="Dokter">
-                        <strong>${ubahGelar(dokter)}</strong>
-                    </td>
-                    <td data-label="Saran">
-                        <span class="badge ${getSaranBadgeColor(saran)}">${saran}</span>
+                    <td data-label="No"><span class="fw-bold">${nomorUrut}</span></td>
+                    <td data-label="Tanggal"><span class="badge bg-light text-dark border"><i class="fa-regular fa-calendar me-1"></i>${tanggal}</span></td>
+                    <td data-label="Jam"><span class="badge bg-light text-dark border"><i class="fa-regular fa-clock me-1"></i>${jam}</span></td>
+                    <td data-label="Dokter"><strong>${dokter}</strong></td>
+                    <td data-label="Saran"><span class="badge ${getSaranBadgeColor(saran)}">${saran}</span></td>
+                    <td data-label="Aksi" class="text-center">
+                        <button class="btn btn-sm btn-outline-danger px-3 rounded-pill" onclick="deleteSingleRow('${key}')">
+                            <i class="fa-solid fa-trash me-1"></i> Hapus
+                        </button>
                     </td>
                 </tr>
             `;
@@ -331,13 +332,13 @@
             if (item.dokter) listDokterUnik.add(item.dokter);
         });
 
-        let dropdownHtml = '<option value="" disabled ' + (selectedValueBefore === "" ? 'selected' : '') + '>-- Pilih Dokter --</option>';
+        let dropdownHtml = '<option value="" ' + (selectedValueBefore === "" ? 'selected' : '') + '>-- Ringkasan Semua Dokter --</option>';
         listDokterUnik.forEach(namaDokter => {
-            dropdownHtml += `<option value="${namaDokter}" ${selectedValueBefore === namaDokter ? 'selected' : ''}>${ubahGelar(namaDokter)}</option>`;
+            dropdownHtml += `<option value="${namaDokter}" ${selectedValueBefore === namaDokter ? 'selected' : ''}>${namaDokter}</option>`;
         });
         
         dropdown.innerHTML = dropdownHtml;
-        if(selectedValueBefore) updateChartData(); 
+        updateChartData();
     }
 
     function deleteSingleRow(keyId) {
@@ -355,7 +356,6 @@
             fetch(url, { method: 'DELETE' })
             .then(() => {
                 fetchFirebaseData();
-                resetChartToZero();
             })
             .catch(err => alert(err));
         }
@@ -365,15 +365,13 @@
         const ctx = document.getElementById('votingChart').getContext('2d');
         myChartInstance = new Chart(ctx, {
             type: 'bar', 
+            plugins: [ChartDataLabels],
             data: {
-                labels: ['Sangat Baik', 'Baik', 'Cukup', 'Tidak Baik', 'Sangat Tdk Baik'],
+                labels: [],
                 datasets: [{
-                    label: 'Persentase (%)',
-                    data: [0, 0, 0, 0, 0],
-                    backgroundColor: [
-                        'rgba(40, 167, 69, 0.8)', 'rgba(23, 162, 184, 0.8)', 
-                        'rgba(255, 193, 7, 0.8)', 'rgba(220, 53, 69, 0.8)', 'rgba(108, 117, 125, 0.8)'
-                    ],
+                    label: 'Indeks Kepuasan (CSI %)',
+                    data: [],
+                    backgroundColor: kategoriColors,
                     borderWidth: 0,
                     borderRadius: 6
                 }]
@@ -381,14 +379,77 @@
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                scales: { y: { beginAtZero: true, max: 100, ticks: { callback: function(value) { return value + "%"; } } } }
+                layout: { padding: { top: 24 } },
+                scales: { y: { beginAtZero: true, max: 100, ticks: { callback: function(value) { return value + "%"; } } } },
+                plugins: {
+                    legend: { display: false },
+                    datalabels: {
+                        anchor: 'end',
+                        align: 'end',
+                        color: '#495057',
+                        font: { weight: 'bold', size: 12 },
+                        formatter: function(value) {
+                            return Number(value).toFixed(1) + '%';
+                        }
+                    }
+                }
             }
         });
     }
 
+    // Menampilkan grafik ringkasan seluruh dokter (nama dokter vs persentase kepuasan/CSI masing-masing)
+    function renderOverviewChart() {
+        document.getElementById("summary-info").classList.add("d-none");
+        document.getElementById("chart-title-label").innerText = "Grafik Ringkasan Semua Dokter (%)";
+
+        document.getElementById("label-total-database").innerText = "Total Database";
+        document.getElementById("label-total-sublabel").innerText = "Responden Masuk";
+        document.getElementById("total-global-database").innerText = Object.keys(localDatabaseStorage).length + " Pasien";
+
+        let listDokterUnik = new Set();
+        Object.values(localDatabaseStorage).forEach(item => {
+            if (item.dokter) listDokterUnik.add(item.dokter);
+        });
+
+        let labels = [];
+        let dataPersen = [];
+        let warna = [];
+        const paletWarna = ['#0d6efd', '#20c997', '#ffc107', '#fd7e14', '#6610f2', '#e83e8c', '#198754', '#0dcaf0'];
+        let idxWarna = 0;
+
+        listDokterUnik.forEach(dokter => {
+            let totalVote = 0;
+            let totalSkor = 0;
+            Object.values(localDatabaseStorage).forEach(item => {
+                if (item.dokter === dokter) {
+                    totalVote++;
+                    totalSkor += skorMap[item.saran] || 0;
+                }
+            });
+            let csi = totalVote > 0 ? (totalSkor / (totalVote * 5)) * 100 : 0;
+            labels.push(dokter);
+            dataPersen.push(csi.toFixed(1));
+            warna.push(paletWarna[idxWarna % paletWarna.length]);
+            idxWarna++;
+        });
+
+        myChartInstance.data.labels = labels;
+        myChartInstance.data.datasets[0].label = 'Indeks Kepuasan / CSI (%)';
+        myChartInstance.data.datasets[0].data = dataPersen;
+        myChartInstance.data.datasets[0].backgroundColor = warna;
+        myChartInstance.update();
+    }
+
+    // Menampilkan grafik detail (per kategori penilaian) untuk 1 dokter terpilih
     function updateChartData() {
         const dokterTerpilih = document.getElementById("select-dokter").value;
-        if (!dokterTerpilih) return;
+
+        if (!dokterTerpilih) {
+            renderOverviewChart();
+            return;
+        }
+
+        document.getElementById("chart-title-label").innerText = "Grafik Persentase (%) - " + dokterTerpilih;
 
         let jwb = { "Sangat Baik":0, "Baik":0, "Cukup":0, "Tidak Baik":0, "Sangat Tdk Baik":0 };
         let totalVoteDokter = 0;
@@ -400,14 +461,17 @@
             }
         });
 
-        document.getElementById("count-sangat-baik").innerText = jwb["Sangat Baik"] + " pasien";
-        document.getElementById("count-baik").innerText = jwb["Baik"] + " psaien";
-        document.getElementById("count-cukup").innerText = jwb["Cukup"] + " pasien";
-        document.getElementById("count-tidak-baik").innerText = jwb["Tidak Baik"] + " pasien";
-        document.getElementById("count-sngt-tdk-baik").innerText = jwb["Sangat Tdk Baik"] + " pasien";
-        document.getElementById("total-vote-dokter").innerText = totalVoteDokter + " pasien";
-        document.getElementById("total-global-database").innerText = totalVoteDokter + " pasien";
+        document.getElementById("count-sangat-baik").innerText = jwb["Sangat Baik"] + " org";
+        document.getElementById("count-baik").innerText = jwb["Baik"] + " org";
+        document.getElementById("count-cukup").innerText = jwb["Cukup"] + " org";
+        document.getElementById("count-tidak-baik").innerText = jwb["Tidak Baik"] + " org";
+        document.getElementById("count-sngt-tdk-baik").innerText = jwb["Sangat Tdk Baik"] + " org";
+        document.getElementById("total-vote-dokter").innerText = totalVoteDokter + " org";
         document.getElementById("summary-info").classList.remove("d-none");
+
+        document.getElementById("label-total-database").innerText = "Total Voting";
+        document.getElementById("label-total-sublabel").innerText = dokterTerpilih;
+        document.getElementById("total-global-database").innerText = totalVoteDokter + " Pasien";
 
         let pSB = totalVoteDokter > 0 ? (jwb["Sangat Baik"] / totalVoteDokter) * 100 : 0;
         let pB  = totalVoteDokter > 0 ? (jwb["Baik"] / totalVoteDokter) * 100 : 0;
@@ -415,7 +479,10 @@
         let pTB = totalVoteDokter > 0 ? (jwb["Tidak Baik"] / totalVoteDokter) * 100 : 0;
         let pSTB= totalVoteDokter > 0 ? (jwb["Sangat Tdk Baik"] / totalVoteDokter) * 100 : 0;
 
+        myChartInstance.data.labels = kategoriLabels;
+        myChartInstance.data.datasets[0].label = 'Persentase (%)';
         myChartInstance.data.datasets[0].data = [pSB, pB, pC, pTB, pSTB];
+        myChartInstance.data.datasets[0].backgroundColor = kategoriColors;
         myChartInstance.update(); 
 
         let totalSkor = (jwb["Sangat Baik"]*5) + (jwb["Baik"]*4) + (jwb["Cukup"]*3) + (jwb["Tidak Baik"]*2) + (jwb["Sangat Tdk Baik"]*1);
@@ -428,14 +495,7 @@
         else if (csi >= 43.75) predikat = "Cukup Memuaskan";
         else if (csi >= 25.00) predikat = "Kurang Memuaskan";
 
-        document.getElementById("text-kesimpulan-jurnal").innerHTML = `Diperoleh indeks kepuasan (CSI) sebesar <strong>${csi.toFixed(1)}%</strong>. Performa pelayanan medis terhadap <strong>${ubahGelar(dokterTerpilih)}</strong> diklasifikasikan berpredikat <strong>${predikat}</strong> secara metodologi Skala Likert (Total: ${totalVoteDokter} responden).`;
-    }
-
-    function resetChartToZero() {
-        document.getElementById("summary-info").classList.add("d-none");
-        document.getElementById("select-dokter").value = "";
-        myChartInstance.data.datasets[0].data = [0, 0, 0, 0, 0];
-        myChartInstance.update();
+        document.getElementById("text-kesimpulan-jurnal").innerHTML = `Diperoleh indeks kepuasan (CSI) sebesar <strong>${csi.toFixed(1)}%</strong>. Performa pelayanan medis terhadap <strong>${dokterTerpilih}</strong> diklasifikasikan berpredikat <strong>${predikat}</strong> secara metodologi Skala Likert (Total: ${totalVoteDokter} responden).`;
     }
 
     // PWA CORE SERVICE: Pendaftaran Engine Otomatis
@@ -445,10 +505,6 @@
             .then(() => console.log("PWA Service Worker Aktif"))
             .catch(err => console.log("Gagal memuat SW: ", err));
         }
-    }
-
-    function ubahGelar(nama) {
-      return nama.replace(/dr\./i, "dr.");
     }
 </script>
 </body>
